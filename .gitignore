@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Project files
+model.pkl
+feedback.csv
+data/*.csv
+data/*.txt
+
+# OS/editor
+.DS_Store
+.vscode/
