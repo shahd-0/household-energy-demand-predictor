@@ -75,7 +75,6 @@ Random Forest performed best and was chosen for the final model.
 - **Model:** Random Forest Regressor (`n_estimators=200`, `max_depth=20`, `random_state=42`)
 - **Features:** `hour`, `day_of_week`, `voltage`, `global_intensity`, `sub_metering_1`, `sub_metering_2`, `sub_metering_3`
 - **Split:** 80/20 train/test
-- **Metrics:** MAE: [add value], R²: [add value] (printed by `train.py`)
 
 The trained model is saved with `joblib` as `model.pkl`, so the service loads it at startup without retraining.
 
