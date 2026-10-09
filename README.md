@@ -25,8 +25,8 @@ household-energy-demand-predictor/
 ├── frontend/
 │   └── index.html       
 ├── notebooks/
-│   ├── 01_data_preprocessing.ipynb
-│   └── 02_pilot_study.ipynb
+│   ├── data_preprocessing.ipynb
+│   └── pilot_study.ipynb
 ├── data/
 │   └── README.md       
 ├── requirements.txt
