@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Electricity Demand Predictor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 500px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        h1 {
+            margin-bottom: 5px;
+        }
+
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            box-sizing: border-box;
+        }
+
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            border: 1px solid #ddd;
+        }
+
+        #history {
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            border: 1px solid #ddd;
+        }
+
+        .history-item {
+            border-bottom: 1px solid #eee;
+            padding: 8px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Electricity Demand Predictor</h1>
+    <p>Enter household electricity details to predict energy consumption.</p>
+
+    <label for="hour">Hour of the day (00h-23h)</label>
+    <select id="hour">
+        <option value="0">00h</option>
+        <option value="1">01h</option>
+        <option value="2">02h</option>
+        <option value="3">03h</option>
+        <option value="4">04h</option>
+        <option value="5">05h</option>
+        <option value="6">06h</option>
+        <option value="7">07h</option>
+        <option value="8">08h</option>
+        <option value="9">09h</option>
+        <option value="10">10h</option>
+        <option value="11">11h</option>
+        <option value="12">12h</option>
+        <option value="13">13h</option>
+        <option value="14">14h</option>
+        <option value="15">15h</option>
+        <option value="16">16h</option>
+        <option value="17">17h</option>
+        <option value="18">18h</option>
+        <option value="19">19h</option>
+        <option value="20">20h</option>
+        <option value="21">21h</option>
+        <option value="22">22h</option>
+        <option value="23">23h</option>
+    </select>
+
+    <label for="day_of_week">Day of the week (Monday-Sunday)</label>
+    <select id="day_of_week">
+        <option value="0">Monday</option>
+        <option value="1">Tuesday</option>
+        <option value="2">Wednesday</option>
+        <option value="3">Thursday</option>
+        <option value="4">Friday</option>
+        <option value="5">Saturday</option>
+        <option value="6">Sunday</option>
+    </select>
+
+    <label for="voltage">Voltage from smart meter (V, 200-260)</label>
+    <input id="voltage" type="number" min="200" max="260" step="0.1" placeholder="Example: 240">
+
+    <label for="global_intensity">Current intensity (A, 0-50)</label>
+    <input id="global_intensity" type="number" min="0" max="50" step="0.1" placeholder="Example: 8">
+
+    <label for="sub_metering_1">Kitchen energy usage (Wh, 0-100)</label>
+    <input id="sub_metering_1" type="number" min="0" max="100" step="0.1" placeholder="Example: 1">
+
+    <label for="sub_metering_2">Laundry energy usage (Wh, 0-100)</label>
+    <input id="sub_metering_2" type="number" min="0" max="100" step="0.1" placeholder="Example: 2">
+
+    <label for="sub_metering_3">Heating/cooling usage (Wh, 0-100)</label>
+    <input id="sub_metering_3" type="number" min="0" max="100" step="0.1" placeholder="Example: 10">
+
+    <button onclick="predict()">Predict</button>
+
+    <div id="result">Prediction will appear here</div>
+
+    <label for="actual">Enter actual energy value (optional, kWh, 0-100)</label>
+    <input id="actual" type="number" min="0" max="100" step="0.1" placeholder="Example: 5.6">
+    <button onclick="sendFeedback()">Send feedback</button>
+    <div id="feedbackMessage"></div>
+
+    <h2>Prediction history</h2>
+    <button onclick="clearHistory()">Clear history</button>
+    <div id="history">No predictions yet</div>
+
+    <script>
+        let lastInputs = null;
+
+        const ranges = {
+            hour: [0, 23],
+            day_of_week: [0, 6],
+            voltage: [200, 260],
+            global_intensity: [0, 50],
+            sub_metering_1: [0, 100],
+            sub_metering_2: [0, 100],
+            sub_metering_3: [0, 100]
+        };
+
+        function isValid(data) {
+            for (let key in ranges) {
+                let value = data[key];
+                let min = ranges[key][0];
+                let max = ranges[key][1];
+
+                if (isNaN(value) || value < min || value > max) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        function predict() {
+            const data = {
+                hour: Number(document.getElementById("hour").value),
+                day_of_week: Number(document.getElementById("day_of_week").value),
+                voltage: Number(document.getElementById("voltage").value),
+                global_intensity: Number(document.getElementById("global_intensity").value),
+                sub_metering_1: Number(document.getElementById("sub_metering_1").value),
+                sub_metering_2: Number(document.getElementById("sub_metering_2").value),
+                sub_metering_3: Number(document.getElementById("sub_metering_3").value)
+            };
+
+            if (!isValid(data)) {
+                document.getElementById("result").innerText = "Please enter values in the allowed ranges";
+                return;
+            }
+
+            fetch("http://127.0.0.1:5000/predict", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                document.getElementById("result").innerText = result.message;
+                lastInputs = data;
+                saveHistory(data, result.prediction);
+            })
+            .catch(() => {
+                document.getElementById("result").innerText = "Could not connect to backend";
+            });
+        }
+
+        function sendFeedback() {
+            const actual = Number(document.getElementById("actual").value);
+
+            if (lastInputs === null) {
+                document.getElementById("feedbackMessage").innerText = "Make a prediction first";
+                return;
+            }
+
+            if (document.getElementById("actual").value === "") {
+                document.getElementById("feedbackMessage").innerText = "Actual value is optional";
+                return;
+            }
+
+            fetch("http://127.0.0.1:5000/feedback", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    features: lastInputs,
+                    actual: actual
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("feedbackMessage").innerText = data.message;
+            })
+            .catch(() => {
+                document.getElementById("feedbackMessage").innerText = "Could not send feedback";
+            });
+        }
+
+        function saveHistory(inputs, prediction) {
+            let history = JSON.parse(localStorage.getItem("predictionHistory")) || [];
+
+            history.push({
+                inputs: inputs,
+                prediction: prediction
+            });
+
+            localStorage.setItem("predictionHistory", JSON.stringify(history));
+            showHistory();
+        }
+
+        function showHistory() {
+            let history = JSON.parse(localStorage.getItem("predictionHistory")) || [];
+            let historyBox = document.getElementById("history");
+            let days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+
+            if (history.length === 0) {
+                historyBox.innerHTML = "No predictions yet";
+                return;
+            }
+
+            historyBox.innerHTML = "";
+
+            history.forEach(item => {
+                historyBox.innerHTML += `
+                    <div class="history-item">
+                        Hour: ${item.inputs.hour},
+                        Day: ${days[item.inputs.day_of_week]},
+                        Voltage: ${item.inputs.voltage},
+                        Intensity: ${item.inputs.global_intensity}
+                        <br>
+                        Prediction: ${Number(item.prediction).toFixed(2)} kWh
+                    </div>
+                `;
+            });
+        }
+
+        function clearHistory() {
+            localStorage.removeItem("predictionHistory");
+            showHistory();
+        }
+
+        showHistory();
+    </script>
+</body>
+</html>
